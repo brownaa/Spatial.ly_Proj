@@ -1,10 +1,10 @@
 ---
-title: "Initial Experimentation"
+title: "Starting Analysis & Visualization of Spatial Data with R"
 author: "Aaron Brown"
-date: "Saturday, May 16, 2015"
+date: "Sunday, May 17, 2015"
 output:
   pdf_document:
-    highlight: pygments
+    highlight: tango
     number_sections: yes
     toc: yes
   html_document:
@@ -12,17 +12,37 @@ output:
     theme: united
     toc: yes
 ---
-\newpage
 
 #Introduction
 This introduction was taken as part of the [Spatial.ly: R Spatial Tips](http://spatial.ly/r/) site.  The site was built to give R users an introduction into spatial analysis using R.
 
+This document is based on the workbooks discussed [here](http://spatialanalysis.co.uk/2013/04/analysis-visualisation-spatial-data/).
 ##Packages Required
 This analysis uses several packages in the analysis.
 
   1. **ProjectTemplate** library to manage the files and structure of the project.
   2. **maptools** and **rgdal** as required on [this page](http://spatialanalysis.co.uk/2011/01/handling-spatial-data-with-r/).
-
+  
+This project is loaded by executing the following codechunk.
+```{r}
+library(knitr)
+opts_knit$set(root.dir = '..')
+```
+```{r}
+library(ProjectTemplate)
+load.project()
+```
 ##Files downloaded
 The [London Sports Participate shapefile](http://spatialanalysis.co.uk/wp-content/uploads/2010/09/London_Sport1.zip) and [London Cycle Hire Locations](http://dl.dropbox.com/u/10640416/London_cycle_hire_locs.csv) are downloaded to the *./data* directory.
+```{r}
+if(!file.exists('./data/London_Sport1.zip')){
+      url <- "http://spatialanalysis.co.uk/wp-content/uploads/2010/09/London_Sport1.zip"
+      download(url, dest = "data/London_Sport1.zip", mode = "wb")
+}
+unzip("data/London_Sport1.zip", overwrite = TRUE, exdir = "data")
 
+if(!file.exists('./data/London_cycle_hire_locs.csv')){
+      url <- "http://dl.dropbox.com/u/10640416/London_cycle_hire_locs.csv"
+      download(url, dest = "data/London_cycle_hire_locs.csv", mode = "wb")
+}
+```

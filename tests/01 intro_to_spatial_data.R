@@ -2,7 +2,9 @@
 
 ##Handling spatial data with R
 
-##This tutorial provides an introduction to handling spatial data with R. It outlines how to create a simple spatial object, load a shapefile and add/ change projection information. It is pretty dry, but provides important foundations to the more interesting things you can do with spatial data using R. 
+##This tutorial provides an introduction to handling spatial data with R. It outlines how to create 
+##a simple spatial object, load a shapefile and add/ change projection information. It is pretty dry, 
+##but provides important foundations to the more interesting things you can do with spatial data using R. 
 
 ##Data Requirements:
 
@@ -16,13 +18,10 @@
 library(maptools)
 library(rgdal)
 
-##Set your working directory- this should be the folder where the above files are saved.
-
-setwd("/XX/XX")
 
 ## Load the cycle hire  locations.
 
-cycle<- read.csv("London_cycle_hire_locs.csv", header=T)
+cycle<- read.csv("data/London_cycle_hire_locs.csv", header=T)
 
 ## Inspect column headings
 
@@ -58,7 +57,7 @@ proj4string(cycle)<-BNG
 
 ## Shapefiles are extremely simple to import/ export to/from an R session and are handled as spatial objects in the same way as above. In this case we are going to load in a SpatialPolygonsDataframe. We can specify the CRS when the data at this stage (it is BNG as above).
 
-sport<- readShapePoly("london_sport.shp", proj4string= BNG)
+sport<- readShapePoly("data/london_sport.shp", proj4string= BNG)
 
 ##have a look at the attribute table headings (these are the values stored in the @data slot)
 
@@ -79,25 +78,10 @@ plot(cycle, add=T, col= "red", pch=15)
 ## Refer to other tutorials if you want to produce interesting maps with these data.
 ## To export the data as a shapefile use the following syntax for the point data:
 
-writePointsShape(cycle, "cycle.shp")
+writePointsShape(cycle, "data/cycle.shp")
 
 ## and the polygon data (replace Poly with Lines for spatial lines)
 
 writePolyShape(sport, "london_sport.shp")
 
 ##Done!
-
-##Acknowledgements:
-
-##Much of this content was adapted from a worksheet written by Dr Gavin Simpson (UCL Geography). 
-
-##Further Reading:
-
-##Applied spatial data analysis with R. Bivand et al.
-
-
-##Disclaimer: The methods provided here may not be the best solutions, 
-##just the ones I happen to know about! No support is provided with these worksheets. 
-##I have tried to make them as self-explanatory as possible and will not be able to 
-##respond to specific requests for help. I do however welcome feedback on the tutorials.
-##License: cc-by-nc-sa. Contact: james@spatialanalysis.co.uk

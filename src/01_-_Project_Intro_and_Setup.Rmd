@@ -1,0 +1,118 @@
+---
+title: "Initial Experimentation"
+author: "Aaron Brown"
+date: "Saturday, May 16, 2015"
+output:
+  html_document:
+    number_sections: yes
+    theme: united
+    toc: yes
+  pdf_document:
+    highlight: tango
+    number_sections: yes
+    toc: yes
+---
+\newpage
+
+#Introduction
+This introduction was taken as part of the [Spatial.ly: R Spatial Tips](http://spatial.ly/r/) site.  The site was built to give R users an introduction into spatial analysis using R.
+##Packages Required
+This analysis uses several packages in the analysis.
+
+  1. **ProjectTemplate** library to manage the files and structure of the project.
+  2. **maptools** and **rgdal** as required on [this page](http://spatialanalysis.co.uk/2011/01/handling-spatial-data-with-r/).
+  
+This project is loaded by executing the following codechunk.
+```{r}
+library(knitr)
+opts_knit$set(root.dir = '..')
+```
+```{r}
+library(ProjectTemplate)
+load.project()
+
+```
+##Files downloaded
+The [London Sports Participate shapefile](http://spatialanalysis.co.uk/wp-content/uploads/2010/09/London_Sport1.zip) and [London Cycle Hire Locations](http://dl.dropbox.com/u/10640416/London_cycle_hire_locs.csv) are downloaded to the *./data* directory.
+```{r}
+if(!file.exists('./data/01/London_Sport1.zip')){
+      url <- "http://spatialanalysis.co.uk/wp-content/uploads/2010/09/London_Sport1.zip"
+      download(url, dest = "data/01/London_Sport1.zip", mode = "wb")
+}
+unzip("data/01/London_Sport1.zip", overwrite = TRUE, exdir = "data/01")
+
+if(!file.exists('./data/01/London_cycle_hire_locs.csv')){
+      url <- "http://dl.dropbox.com/u/10640416/London_cycle_hire_locs.csv"
+      download(url, dest = "data/01/London_cycle_hire_locs.csv", mode = "wb")
+}
+```
+##Exploratory Analysis
+We can read the London Cycle Hire data into the **cycle** variable with the following code.
+```{r}
+cycle<- read.csv("data/01/London_cycle_hire_locs.csv", header=T)
+```
+In the following code chunk, we can see what the column data looks like
+```{r}
+head(cycle)
+```
+In order to illustrate the difference between plotting spatially and as a normal XY-plot we have the following figure which can be compared with a later figure.
+```{r}
+plot(cycle$X, cycle$Y)
+````
+We can tell R that **cycle** contains spatial data with the *coordinates* function
+```{r}
+coordinates(cycle)<- c("X", "Y")
+```
+A look at the cycle data.
+```{r}
+class(cycle)
+str(cycle)
+```
+The class has become a "SpatialPointsDataFrame" which is a type of S4 object that requires handling slightly differently. The str() output contains lots of @ symbols which denote a different slot. Typing cycle@data will extract the attribute data. The X and Y locational information can now be found in the coords slot. In addition bbox contains the bounding box coordinates and the pro4string contains the projection, or CRS (coordinate reference system) information. We have not specified this so it is empty at the moment. We therefore need to refer to the correct Proj4 string information. These are loaded with the rgdal package and can simply be referred to with an ID. To see the available CRSs enter:
+```{r}
+EPSG<- make_EPSG()
+head(EPSG)
+```
+In this case the data are in British National Grid. We can search for this within the EPSG object.
+```{r}
+with(EPSG, EPSG[grep("British National", note),])
+```
+The code we are after is 27700. 
+```{r}
+BNG<- CRS("+init=epsg:27700")
+
+proj4string(cycle)<-BNG
+```
+From this point we can combine the data with other spatial information and also perform transformations on the data. This is especially useful when exporting to other software. See the XXX tutorial.  
+
+Shapefiles are extremely simple to import/ export to/from an R session and are handled as spatial objects in the same way as above. In this case we are going to load in a SpatialPolygonsDataframe. We can specify the CRS when the data at this stage (it is BNG as above).
+```{r}
+sport<- readShapePoly("data/01/london_sport.shp", proj4string= BNG)
+```
+A look at the attribute table headings (these are the values stored in the @data slot)
+```{r}
+names(sport)
+```
+and you can double check the CRS:
+```{r}
+sport@proj4string
+```
+Plot the data and add the cycle points to check they line up (they should be around the centre of London).
+```{r}
+plot(sport, col="blue")
+plot(cycle, add=T, col= "red", pch=15)
+```
+
+#Further Explorations
+
+Refer to other tutorials if you want to produce interesting maps with these data.
+
+To export the data as a shapefile use the following syntax for the point data:
+```{r}
+writePointsShape(cycle, "data/01/processed/cycle.shp")
+```
+and the polygon data (replace Poly with Lines for spatial lines)
+```{r}
+writePolyShape(sport, "data/01/processed/london_sport.shp")
+```
+**Done!**
