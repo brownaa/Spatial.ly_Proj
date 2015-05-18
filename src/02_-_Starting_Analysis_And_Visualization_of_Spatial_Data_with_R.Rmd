@@ -3,21 +3,25 @@ title: "Starting Analysis & Visualization of Spatial Data with R"
 author: "Aaron Brown"
 date: "Sunday, May 17, 2015"
 output:
-  pdf_document:
-    highlight: tango
-    number_sections: yes
-    toc: yes
   html_document:
     number_sections: yes
     theme: united
+    toc: yes
+  pdf_document:
+    highlight: tango
+    number_sections: yes
     toc: yes
 ---
 
 #Introduction
 This introduction was taken as part of the [Spatial.ly: R Spatial Tips](http://spatial.ly/r/) site.  The site was built to give R users an introduction into spatial analysis using R.
 
+**Attribution**: Based on A Short Introduction to R by Richard Harris (www.social-statistics.org).
+
 This document is based on the workbooks discussed [here](http://spatialanalysis.co.uk/2013/04/analysis-visualisation-spatial-data/).
+
 ##Packages Required
+
 This analysis uses several packages in the analysis.
 
   1. **ProjectTemplate** library to manage the files and structure of the project.
@@ -33,16 +37,334 @@ library(ProjectTemplate)
 load.project()
 ```
 ##Files downloaded
-The [London Sports Participate shapefile](http://spatialanalysis.co.uk/wp-content/uploads/2010/09/London_Sport1.zip) and [London Cycle Hire Locations](http://dl.dropbox.com/u/10640416/London_cycle_hire_locs.csv) are downloaded to the *./data* directory.
-```{r}
-if(!file.exists('./data/London_Sport1.zip')){
-      url <- "http://spatialanalysis.co.uk/wp-content/uploads/2010/09/London_Sport1.zip"
-      download(url, dest = "data/London_Sport1.zip", mode = "wb")
-}
-unzip("data/London_Sport1.zip", overwrite = TRUE, exdir = "data")
+There are two workbooks associated with this analysis and can be found [here](http://spatialanalysis.co.uk/2013/04/analysis-visualisation-spatial-data/).
 
-if(!file.exists('./data/London_cycle_hire_locs.csv')){
-      url <- "http://dl.dropbox.com/u/10640416/London_cycle_hire_locs.csv"
-      download(url, dest = "data/London_cycle_hire_locs.csv", mode = "wb")
+The following codechunk download the worksheet and raw data associated with the Richard Harris workbook and the unnamed second workbook.
+
+```{r}
+data.dir <- 'data/02'
+if(!file.exists(paste0(data.dir, 'Intro_R_Data.zip'))){
+      url <- 'http://spatialanalysis.co.uk/wp-content/uploads/2013/04/Intro_R_Data.zip'
+      download(url, dest = paste0(data.dir, '/Intro_R_Data.zip'), mode = 'wb')
 }
+unzip(paste0(data.dir, '/Intro_R_Data.zip'), overwrite = TRUE, exdir = data.dir)
+
+if(!file.exists(paste0(data.dir, '/intro_to_R1.pdf'))){
+      url <- 'http://www.social-statistics.org/wp-content/uploads/2012/12/intro_to_R1.pdf'
+      download(url, dest = paste0(data.dir, '/intro_to_R1.pdf'), mode = 'wb')
+}
+```
+
+#Loading and Previewing Schools Data
+
+```{r}
+schools.dat <- read.csv(paste0(data.dir, '/schools.csv'))
+```
+
+Reviewing the data
+
+```{r}
+head(schools.dat); tail(schools.dat)
+```
+
+Getting a summary of each column
+
+```{r}
+summary(schools.dat)
+```
+
+The names of each column are
+```{r}
+names(schools.dat)
+```
+
+Checking the structure of *schools.dat*
+
+```{r}
+ncol(schools.dat)
+nrow(schools.dat)
+complete.cases(schools.dat)
+```
+
+##Initial Data Visualizations
+
+The file schools.csv contains information about the location and some attributes of schools in 
+Greater London (in 2008). The locations are given as a grid reference (Easting, Northing). The 
+information is not real but is realistic. It should not, however, be used to make inferences about real 
+schools in London.
+
+Of particular interest is the average attainment on leaving primary school of pupils entering their 
+first year of secondary school. Do some schools in London attract  higher attaining pupils more than 
+others? The variable attainment contains this information.
+A stripchart and then a histogram will show that (not surprisingly) there is variation in the average 
+prior attainment by school.
+
+Here the histogram is scaled so the total area sums to one. 
+
+To this we can add a rug plot...also a density curve, a Normal curve for comparison and a legend.
+
+```{r}
+attach(schools.dat)
+stripchart(attainment, method="stack", xlab="Mean Prior Attainment by School")
+hist(attainment, col="light blue", border="dark blue", freq=F, ylim=c(0,0.30),xlab="Mean attainment")
+
+rug(attainment)
+
+lines(density(sort(attainment)))
+xx <- seq(from=23, to=35, by=0.1)
+yy <- dnorm(xx, mean(attainment), sd(attainment))
+lines(xx, yy, lty="dotted")
+rm(xx, yy)
+legend("topright", legend=c("density curve","Normal curve"),
+       lty=c("solid","dotted"))
+```
+
+If would be interesting to know if attainment varies by school type. A simple way to consider this is 
+to produce a box plot. The data contain a series of dummy variables for each of a series of school 
+types (Voluntary Aided Church of England: coe = 1;  Voluntary Aided Roman Catholic: rc = 1; 
+Voluntary controlled faith school: vol.con = 1;  another type of faith school: other.faith = 1; a 
+selective school (with an entrance exam): selective = 1). We will combine these into a single, 
+categorical variable then produce the box plot showing the distribution of average attainment by 
+school type.
+
+First the categorical variable:
+```{r}
+school.type <- rep("Not Faith/Selective", times=nrow(schools.dat))
+school.type[coe==1] <- "VA CoE"
+school.type[rc==1] <- "VA RC"
+school.type[vol.con==1] <- "VC"
+school.type[other.faith==1] <- "Other Faith"
+school.type[selective==1] <- "Selective"
+school.type <- factor(school.type)
+levels(school.type)
+```
+
+Now the box plots:
+```{r}
+par(mai=c(1,1.4,0.5,0.5))     # Changes the graphic margins
+boxplot(attainment ~ school.type, horizontal=T, xlab="Mean attainment", las=1,
+        cex.axis=0.8)    # Includes options to draw the boxes and labels horizontally
+abline(v=mean(attainment), lty="dashed")   # Adds the mean value to the plot
+legend("topright", legend="Grand Mean", lty="dashed")
+```
+
+Not surprisingly, the selective schools recruit the pupils with highest average prior attainment.
+
+##Simple Statistics
+It appears that there are differences in the levels of prior attainment of pupils in different school 
+types. We can test whether the variation is significant using an analysis of variance.
+```{r}
+summary(aov(attainment ~ school.type))
+```
+
+It is, at a greater than 99.9% confidence (F = 71.42, p < 0.001).
+We might also be interested in comparing those schools with the highest and lowest proportions of 
+Free School Meal eligible pupils to see if they are recruiting pupils with equal or differing mean 
+prior attainment.
+
+```{r}
+# Finds the attainment scores for schools with the highest proportions of FSM pupils
+attainment.high.fsm.schools <- attainment[fsm > quantile(fsm, probs=0.75)]
+# Finds the attainment scores for schools with the lowest proportions of FSM pupils
+attainment.low.fsm.schools <- attainment[fsm < quantile(fsm, probs=0.25)]
+t.test(attainment.high.fsm.schools, attainment.low.fsm.schools)
+```
+
+It comes as little surprise to learn that those schools with the greatest proportions of FSM eligible 
+pupils are also those recruiting lower attaining pupils on average (mean attainment 26.6 Vs 29.6, t = 
+-15.0, p < 0.001).
+Exploring this further, the Pearson correlation between the mean prior attainment of pupils entering 
+each school and the proportion of them that are FSM eligible is -0.689, and significant (p < 0.001):
+
+```{r}
+round(cor(fsm, attainment),3)
+cor.test(fsm, attainment)
+```
+
+Of course, the use of the Pearson correlation assumes that the relationship is linear, so let's check:
+
+```{r}
+plot(attainment ~ fsm)
+# Adds a line of best fit (a regression line)
+abline(lm(attainment ~ fsm))
+```
+
+There is some suggestion the relationship might be curvilinear. However, we will ignore that here.
+Finally, some regression models. The first seeks to explain the mean prior attainment scores for the 
+
+schools in London by the proportion of their intake who are free school meal eligible. (The result is 
+the regression line shown on the scatterplot above).
+The second adds a variable giving the proportion of the intake of a white ethnic group.
+The third adds a dummy variable indicating whether the school is selective or not.
+```{r}
+model1 <- lm(attainment ~ fsm, data=schools.dat)
+summary(model1)
+model2 <- lm(attainment ~ fsm + white, data=schools.dat)
+summary(model2)
+model3 <- update(model2, . ~ . + selective)
+summary(model3)
+
+lm(formula = attainment ~ fsm + white + selective, data = schools.dat)
+
+model4 <- update(model3, . ~ . - white)
+anova(model4, model3)
+```
+
+The residual error, measured by the residual sum of squares (RSS), is not very different for the two 
+models, and that difference, 0.882, is not significant (F = 1.045, p = 0.307).
+
+#Mapping Spatial Data
+The schools data contain geographical coordinates and are therefore geographical data. 
+Consequently they can be mapped. The simplest way for point data is to use a 2-dimensional plot, 
+making sure the aspect ratio is fixed correctly.
+```{r}
+plot(Easting, Northing, asp=1, main="Map of London schools")
+```
+
+Amongst the attribute data for the schools, the variable esl gives the proportion of pupils who speak 
+English as an additional language. It would be interesting for the size of the symbol on the map to 
+be proportional to it.
+
+```{r}
+plot(Easting, Northing, asp=1, main="Map of London schools", cex=sqrt(esl*5))
+```
+
+It might also be nice to add a little colour to the map. We might, for example, change the default 
+plotting 'character' to a filled circle with a yellow background.
+
+```{r}
+plot(Easting, Northing, asp=1, main="Map of London schools", cex=sqrt(esl*5), pch=21, bg="yellow")
+```
+
+A more interesting option would be to have the circles filled with a colour gradient that is related to 
+a second variable in the data – the proportion of pupils eligible for free school meals for example.
+
+To achieve this, we can begin by creating a simple colour palette:
+
+```{r}
+palette <- c("yellow","orange","red","purple")
+```
+
+We now cut the free school meals eligibility variable into quartiles (four classes, each containing 
+approximately the same number of observations).
+
+```{r}
+map.class <-  cut(fsm, quantile(fsm), labels=FALSE, include.lowest=TRUE)
+```
+
+What has happened is that the fsm variable has been split into four groups with the value 1 given to 
+the first quarter of the data (schools with the lowest proportions of eligible pupils), the value 2 given 
+to the next quarter, then 3, and finally the value 4 for schools with the highest proportions of FSM 
+eligible pupils.
+
+There are, then, now four map classes and the same number of colours in the palette. Schools in 
+map class 1 (and with the lowest proportion of fsm-eligible pupils) will be coloured yellow, the next 
+class will be orange, and so forth.
+
+Bringing it all together,
+
+```{r}
+plot(Easting, Northing, asp=1, main="Map of London schools", 
+     cex=sqrt(esl*5), pch=21, bg=palette[map.class])
+```
+
+It would be good to add a legend, and perhaps a scale bar and North arrow. Nevertheless, as a first 
+map in R this isn't too bad!
+
+Why don't we be a bit more ambitious and overlay the map on a Google Maps tile, adding a legend 
+as we do so? This requires us to load an additional library for R and to have an active Internet 
+connection.
+
+Assuming that the data frame, schools.dat, remains in the workspace and attached (it will be if you have followed the instructions above), and that the colour palette created above has not been deleted, then the map shown below is created with the following code:
+
+```{r}
+MyMap <- MapBackground(lat=Lat, lon=Long)
+PlotOnStaticMap(MyMap, Lat, Long, cex=sqrt(esl*5), pch=21, bg=palette[map.class])
+legend("topleft", legend=paste("<",tapply(fsm, map.class, max)),
+       pch=21, pt.bg=palette, pt.cex=1.5, bg="white", title="P(FSM-eligible)")
+legVals <- seq(from=0.2,to=1,by=0.2)
+legend("topright", legend=round(legVals,3), pch=21, pt.bg="white",
+       pt.cex=sqrt(legVals*5), bg="white", title="P(ESL)")
+```
+
+Remember that the data are simulated. The points shown on the map are not the true locations of 
+schools in London.
+
+##Some simple geographical analysis
+Remember the regression models from earlier? It would be interesting to test the assumption that 
+the residuals exhibit independence by looking for spatial dependencies. To do this we will consider 
+to what degree the residual value for any one school correlates with the mean residual value for its 
+six nearest other schools (the choice of six is completely arbitrary).
+
+First, we will take a copy of the schools data and convert that into an explicitly spatial object in R:
+
+```{r}
+detach(schools.dat)
+schools.xy <- schools.dat
+attach(schools.xy)
+coordinates(schools.xy) <- c("Easting", "Northing")
+# Converts into a spatial object
+class(schools.xy)
+detach(schools.xy)
+# proj4string(schools.xy) <- CRS("+proj=tmerc datum=OSGB36")
+proj4string(schools.xy) <- CRS("+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 
+                               +y_0=-100000 +ellps=airy 
+                               +towgs84=446.448,-125.157,542.060,0.1502,0.2470,0.8421,-20.4894 
+                               +units=m +no_defs")
+
+# Sets the Coordinate Referencing System
+```
+
+Second, we find the six nearest neighbours for each school.
+
+```{r}
+nearest.six <- knearneigh(schools.xy, k=6, RANN=F)
+# RANN = F to override the use of the RANN package that may not be installed
+```
+
+We can learn from this that the six nearest schools to the first school in the data (row 1) are schools 
+5, 38, 2, 40, 223 and 6:
+```{r}
+nearest.six$nn[1,]
+```
+
+The neighbours object, nearest.six, is an object of class knn:
+
+```{r}
+class(nearest.six)
+```
+
+It is next converted into the more generic class of neighbours.
+
+```{r}
+neighbours <- knn2nb(nearest.six)
+class(neighbours)
+summary(neighbours)
+```
+
+The connections between each point and its neighbours can then be plotted. It may take a few 
+minutes.
+
+```{r}
+plot(neighbours, coordinates(schools.xy))
+```
+
+Having identified the six nearest neighbours to each school we could give each equal weight in a 
+spatial weights matrix or, alternatively, decrease the weight with distance away (so the first nearest 
+neighbour gets most weight and the sixth nearest the least). Creating a matrix with equal weight 
+given to all neighbours is straightforward.
+
+```{r}
+spatial.weights <- nb2listw(neighbours)
+```
+
+(The other possibility will not be considered further here but is achieved by creating then supplying 
+a list of general weights to the function)
+
+We now have all the information required to test whether there are spatial dependencies in the 
+residuals. The answer is yes (Moran's I = 0.218, p < 0.001, indicating positive spatial 
+autocorrelation).
+
+```{r}
+lm.morantest(model4, spatial.weights)
 ```
